@@ -1,5 +1,5 @@
 ## Purpose
-Analyse any correlation between crimes and temperature
+Analyse any possible correlation between crimes and temperature
 
 ## Execution
 
@@ -42,13 +42,12 @@ This dataset partitioned by YYYY/MM/DD and stored on s3 as csv.
 
 
 ## Process
-We will be using PySpark to analyze and store the data. We will be using Airflow to manage the orchestration.
 
 Airflow Steps:
 * Load Temperture and Crime Data
-* Aggregate Temperature and Crime Data
-* Check if Temperature and Crime Data are Valid
-* Create a new dataframe and append it to the previous data using Parquet
+* Processing Temperature and Crime Data
+* Data quality check for Temperature and Crime
+* Modify existing dataframe and put it into parquet form
 
 
 #### Airflow Dag
@@ -60,16 +59,10 @@ Airflow Steps:
 #### Airflow Running Jobs
 ![Airflow Dag](progress.png)
 
-#### Results on S3
-![S3 Results](results_s3.png)
-
-
 ## Results
 
 ### Sample Graph
 ![Sample Results](results.png)
-![Sample Results 2](results1.png)
-![Sample Results 3](results2.png)
 
 ## Scaling
 Airflow can handle the processing of millions of records by scaling horizontally! 
