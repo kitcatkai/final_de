@@ -61,6 +61,17 @@ Airflow Steps:
 
 ## Results
 
+The parquet form dataframe:
+
+Field | Type | 
+------| ----- | 
+day| int | 
+crime_count | int | 
+temperature | int | 
+year | int | 
+month | int | 
+day | int |
+
 ### Sample Graph
 ![Sample Results](results.png)
 
