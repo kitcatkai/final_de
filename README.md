@@ -66,9 +66,6 @@ day | int |
 #### Airflow Tree View
 ![Airflow Dag](treeview.png)
 
-#### Airflow Running Jobs
-![Airflow Dag](progress.png)
-
 ## Results
 
 
