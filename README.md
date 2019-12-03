@@ -1,7 +1,3 @@
-# Data Engineering Nano Degree
-
-## Capstone Project 
-
 ## Purpose
 Analyse any correlation between crimes and temperature
 
