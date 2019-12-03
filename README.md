@@ -49,6 +49,16 @@ Airflow Steps:
 * Data quality check for Temperature and Crime
 * Modify existing dataframe and put it into parquet form
 
+The parquet form dataframe:
+
+Field | Type | 
+------| ----- | 
+crime_count | int | 
+temperature | int | 
+year | int | 
+month | int | 
+day | int |
+
 
 #### Airflow Dag
 ![Airflow Dag](sample_dag.png)
@@ -61,16 +71,6 @@ Airflow Steps:
 
 ## Results
 
-The parquet form dataframe:
-
-Field | Type | 
-------| ----- | 
-day| int | 
-crime_count | int | 
-temperature | int | 
-year | int | 
-month | int | 
-day | int |
 
 ### Sample Graph
 ![Sample Results](results.png)
