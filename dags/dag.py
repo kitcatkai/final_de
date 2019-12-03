@@ -16,7 +16,7 @@ os.environ["AWS_SECRET_ACCESS_KEY"] = Variable.get("aws_secret")
 default_args = {
     "owner": "udacity",
     "depends_on_past": False,
-    "start_date": datetime(2015, 1, 1),
+    "start_date": datetime(2013, 1, 1),
     "retries": 3,
     "end_date": datetime(2016, 12, 31)
 }
@@ -85,12 +85,12 @@ def check_temperature(**kwargs):
 
 
 def check_crimes(**kwargs):
-    """ Check data values to make sure extra days did not get mixed in """
+    """ Ensure that for each partition of date there will only be one single date"""
     task_instance = kwargs["task_instance"]
     crime_count = task_instance.xcom_pull(task_ids="load_crimes", key="crime_count")
     unique_count = task_instance.xcom_pull(task_ids="load_crimes", key="unique_count")
     if unique_count > 1:
-        raise ValueError("Too many dates being processed")
+        raise ValueError("Duplicity in dates identified")
 
 
 def save_dataframe(**kwargs):
