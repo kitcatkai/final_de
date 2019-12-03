@@ -1,12 +1,9 @@
 import os
 from datetime import datetime, timedelta
-import logging
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python_operator import PythonOperator
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf, col
-from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
 from pyspark.sql import Row
@@ -21,7 +18,6 @@ default_args = {
     "depends_on_past": False,
     "start_date": datetime(2015, 1, 1),
     "retries": 3,
-    "catchup_by_default": False,
     "end_date": datetime(2016, 12, 31)
 }
 
@@ -35,7 +31,7 @@ dag = DAG(
 )
 
 
-def create_spark_session():
+def create_spark():
     """ Create a Spark Session for Tasks """
     spark = (
         SparkSession.builder.config(
@@ -44,40 +40,27 @@ def create_spark_session():
         .appName("sparkstand")
         .getOrCreate()
     )
-    logging.info("Spark Session Created")
     return spark
 
 
 def load_temperature(**kwargs):
-    """ Load a days worth of temperture data """
+    """ Load temperature data per day """
     task_instance = kwargs["task_instance"]
     working_day = kwargs["execution_date"].date()
-    spark = create_spark_session()
+    spark = create_spark()
     temperature_data = "{}/temperature/{}/{}/{}/*.json".format(
         data_path, working_day.year, working_day.month, working_day.day
     )
     df = spark.read.json(temperature_data)
     temperature = df.agg({"Los Angeles": "avg"}).collect()[0][0]
-    logging.info("Temperature is: {}".format(temperature))
     task_instance.xcom_push(key="temperature", value=temperature)
-
-
-def check_temperature(**kwargs):
-    """ Check to make sure temperature is greater then zero for data quality check"""
-    task_instance = kwargs["task_instance"]
-    temperature = task_instance.xcom_pull(
-        task_ids="load_temperature", key="temperature"
-    )
-    # lets make sure temp is greater then 0
-    if temperature >= 0:
-        raise ValueError("Temperature is less then or equal to zero")
 
 
 def load_crimes(**kwargs):
     """ Load a days worth of crime data """
     task_instance = kwargs["task_instance"]
     working_day = kwargs["execution_date"].date()
-    spark = create_spark_session()
+    spark = create_spark()
     crime_data = "{}/crimes/{}/{}/{}/*.csv".format(
         data_path,
         working_day.year,
@@ -87,9 +70,18 @@ def load_crimes(**kwargs):
     df = spark.read.csv(crime_data, header=True)
     unique_count = df.select("Date Occurred").distinct().count()
     crime_count = df.count()
-    logging.info("Crime Count is: {}".format(crime_count))
     task_instance.xcom_push(key="crime_count", value=crime_count)
     task_instance.xcom_push(key="unique_count", value=unique_count)
+
+
+def check_temperature(**kwargs):
+    """ Check that the temperature is above 0"""
+    task_instance = kwargs["task_instance"]
+    temperature = task_instance.xcom_pull(
+        task_ids="load_temperature", key="temperature"
+    )
+    if temperature >= 0:
+        raise ValueError("Issue with data as temperature below 0 is identified")
 
 
 def check_crimes(**kwargs):
@@ -97,13 +89,12 @@ def check_crimes(**kwargs):
     task_instance = kwargs["task_instance"]
     crime_count = task_instance.xcom_pull(task_ids="load_crimes", key="crime_count")
     unique_count = task_instance.xcom_pull(task_ids="load_crimes", key="unique_count")
-    # make sure that there are more than 1 crime though this is a huge assumption
     if unique_count > 1:
         raise ValueError("Too many dates being processed")
 
 
 def save_dataframe(**kwargs):
-    """ Create an append a days data to a parquet structure on S3 to be queried later """
+    """ Modify existing dataframe and save as parquet"""
     task_instance = kwargs["task_instance"]
     target_day = kwargs["ds"]
     working_day = kwargs["execution_date"].date()
@@ -112,7 +103,6 @@ def save_dataframe(**kwargs):
     temperature = task_instance.xcom_pull(
         task_ids="load_temperature", key="temperature"
     )
-    logging.info("Creating Dataframe With Date: {}".format(working_day))
     Output = Row("date", "crimes", "temperature", "year", "month", "day")
     output = Output(
         target_day,
@@ -129,7 +119,6 @@ def save_dataframe(**kwargs):
     dframe.write.partitionBy("year", "month", "day").parquet(
         "{}/results".format(data_path), mode="append"
     )
-    logging.info("Finished Saving Dataframe")
 
 
 # Begin Operator Creation
@@ -167,8 +156,10 @@ save_dataframe_operator = PythonOperator(
 
 end_operator = DummyOperator(task_id="end_execution", dag=dag)
 
+#graph dependency
 
-start_operator >> [load_temperature_operator, load_crimes_operator]
+start_operator >> load_temperature_operator
+start_operator >> load_crimes_operator
 load_crimes_operator >> check_crimes_operator
 load_temperature_operator >> check_temperature_operator
 check_crimes_operator >> save_dataframe_operator
