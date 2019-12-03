@@ -10,8 +10,6 @@ Crime data and temperature date are already at s3 and the main aim is to extract
 ### Temperature: 
 [Historical Hourly Weather Data 2012-2017](https://www.kaggle.com/selfishgene/historical-hourly-weather-data)
 
-[Credits](https://www.kaggle.com/selfishgene)
-
 Field | Type | Details
 ------| ----- | ---- 
 datetime | datetime | YYYY/MM/DD
@@ -74,7 +72,7 @@ Airflow Steps:
 ![Sample Results 3](results2.png)
 
 ## Scaling
-Since this system is built on Spark and Airflow it is very much horizontally scalable. Airflow can handle the processing of millions of records. 
+Airflow can handle the processing of millions of records by scaling horizontally! 
 
 ## Credit
 Thanks to @sariabod for the inspiration
